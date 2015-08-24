@@ -1,87 +1,59 @@
 #include "aida64.h"
 #include <nan.h>
 
-struct ReadAIDA64DataAsync {
-    v8::Persistent<v8::Function> callback;
+class ReadWorker : public Nan::AsyncWorker {
+	std::string data_;
+	std::string error_;
+	bool hasError_ = false;
 
-    bool hasError = false;
-    std::string errorData;
-    std::string aidaData;
+public:
+	ReadWorker(Nan::Callback *callback) : Nan::AsyncWorker(callback) {
+	}
+
+	void Execute() {
+		try {
+			data_ = aida64::API().read();
+		}
+		catch (const std::exception& err) {
+			hasError_ = true;
+			error_ = err.what();
+		}
+	}
+
+	void HandleOKCallback() {
+		Nan::HandleScope scope;
+
+		v8::Local<v8::Value> args[] = {
+			!hasError_ ? Nan::Null() : Nan::New(error_.c_str()).ToLocalChecked(),
+			hasError_ ? Nan::Null() : Nan::New(data_.c_str()).ToLocalChecked()
+		};
+
+		callback->Call(2, args);
+	}
 };
 
-void readAIDA64Worker(uv_work_t *req) {
-    auto data = (ReadAIDA64DataAsync *)req->data;
+NAN_METHOD(readAIDA64) {
+	if (info.Length() < 1)
+		return Nan::ThrowError("First argument must be a callback!");
 
-    try {
-        data->aidaData = aida64::API().read();
-    } catch(const std::exception& err) {
-        data->hasError = true;
-        data->errorData = err.what();
-    }
+	if (!info[0]->IsFunction())
+		return Nan::ThrowError("First argument must be a callback!");
+
+	Nan::AsyncQueueWorker(new ReadWorker(new Nan::Callback(info[0].As<v8::Function>())));
 }
 
-void readAIDA64After(uv_work_t *req, int) {
-    v8::HandleScope scope;
-
-    auto data = (ReadAIDA64DataAsync *)req->data;
-
-    v8::Handle<v8::Value> args[] = {
-        data->hasError ? v8::String::New(data->errorData.c_str()) : v8::Null(),
-        data->hasError ? v8::Null() : v8::String::New(data->aidaData.c_str())
-    };
-
-    v8::TryCatch catcher;
-    data->callback->Call(v8::Context::GetCurrent()->Global(), 2, args);
-    if(catcher.HasCaught()) {
-        // Ignore exceptions in the callback
-    }
-
-    data->callback.Dispose();
-    delete data;
-    delete req;
+NAN_METHOD(readAIDA64Sync) {
+	try {
+		return info.GetReturnValue().Set(Nan::New(aida64::API().read().c_str()).ToLocalChecked());
+	}
+	catch (const std::exception& err) {
+		Nan::ThrowError(err.what());
+	}
 }
 
-v8::Handle<v8::Value> readAIDA64(const v8::Arguments& args) {
-    v8::HandleScope scope;
-
-    if(args.Length() < 1) {
-        v8::ThrowException(v8::Exception::Error(v8::String::New("Wrong parameter count!")));
-        return scope.Close(v8::Undefined());
-    }
-
-    if(!args[0]->IsFunction()) {
-        v8::ThrowException(v8::Exception::Error(v8::String::New("First parameter is not a function!")));
-        return scope.Close(v8::Undefined());
-    }
-
-    auto callback = v8::Local<v8::Function>::Cast(args[0]);
-
-    auto data = new ReadAIDA64DataAsync;
-    auto worker = new uv_work_t;
-
-    data->callback = v8::Persistent<v8::Function>::New(callback);
-    worker->data = data;
-
-    uv_queue_work(uv_default_loop(), worker, readAIDA64Worker, readAIDA64After);
-
-    return scope.Close(v8::Undefined());
-}
-
-v8::Handle<v8::Value> readAIDA64Sync(const v8::Arguments& args) {
-    v8::HandleScope scope;
-
-    try {
-        return scope.Close(v8::String::New(aida64::API().read().c_str()));
-    } catch(const std::exception& err) {
-        v8::ThrowException(v8::Exception::Error(v8::String::New(err.what())));
-    }
-
-    return scope.Close(v8::Undefined());
-}
-
-void bindMethods(v8::Handle<v8::Object> target) {
-    NODE_SET_METHOD(target, "readAIDA64", readAIDA64);
-    NODE_SET_METHOD(target, "readAIDA64Sync", readAIDA64Sync);
+NAN_MODULE_INIT(bindMethods) {
+	Nan::Set(target, Nan::New("readAIDA64").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(readAIDA64)).ToLocalChecked());
+	Nan::Set(target, Nan::New("readAIDA64Sync").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(readAIDA64Sync)).ToLocalChecked());
 }
 
 NODE_MODULE(node_aida64, bindMethods);
