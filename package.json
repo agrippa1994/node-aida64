@@ -1,0 +1,19 @@
+{
+	"name": "node-aida64",
+	"version": "1.0",
+	"description": "AIDA64 API for nodejs",
+	"main": "index.js",
+	"license": "MIT",
+	"dependencies": {
+		"xml2js": "0.4.10"
+	},
+
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/agrippa1994/node-aida64"
+	},
+
+	"keywords": [
+		"aida64", "hardware", "monitoring"
+	]
+}
