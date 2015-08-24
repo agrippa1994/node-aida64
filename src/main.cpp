@@ -1,6 +1,5 @@
 #include "aida64.h"
-#include <node.h>
-#include <v8.h>
+#include <nan.h>
 
 struct ReadAIDA64DataAsync {
     v8::Persistent<v8::Function> callback;
