@@ -4,7 +4,7 @@ var xmlParser = require("xml2js").parseString;
 module.exports = {
 	readAIDA64Sync: function() {
 		var obj = {};
-		xmlParser("<root>" + aida64.readAIDA64Sync() + "</root>", { explicitRoot: false }, function(err, result) {
+		xmlParser("<root>" + aida64.readAIDA64Sync() + "</root>", { explicitRoot: false, explicitArray: false }, function(err, result) {
 			if(err)
 				throw err;
 
@@ -19,7 +19,7 @@ module.exports = {
 			if(err)
 				return callback(err, null);
 
-			xmlParser("<root>" + data + "</root>", { explicitRoot: false }, function(err, result) {
+			xmlParser("<root>" + data + "</root>", { explicitRoot: false, explicitArray: false }, function(err, result) {
 				if(err)
 					return callback(err, null);
 
