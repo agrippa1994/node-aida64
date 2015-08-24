@@ -5,7 +5,8 @@
 	"main": "index.js",
 	"license": "MIT",
 	"dependencies": {
-		"xml2js": "0.4.10"
+		"xml2js": "0.4.10",
+		"nan": "^2.0.5"
 	},
 
 	"repository": {
