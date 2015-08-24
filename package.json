@@ -1,6 +1,6 @@
 {
 	"name": "node-aida64",
-	"version": "1.0",
+	"version": "1.0.0",
 	"description": "AIDA64 API for nodejs",
 	"main": "index.js",
 	"license": "MIT",
